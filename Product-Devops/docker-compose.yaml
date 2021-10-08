@@ -1,0 +1,64 @@
+version: '3.8'
+services:
+  db:
+    image: mysql/mysql-server
+    restart: always
+    env_file: ./.env.db
+      
+    expose:
+      #running inside container
+      - 3306
+    networks:
+      product-network:
+        ipv4_address: 172.24.0.12
+    volumes:
+      - ./mysqldump:/docker-entrypoint-initdb.d/
+
+  backend:
+    depends_on:
+      - db
+    build:
+      context: ../Products-Backend/
+      container_name: "backend"
+      image: "backend"
+    restart: unless-stopped
+    env_file: ./.env.backend
+    expose:
+      - 5000
+    # environment:
+    #   - HOST=db
+    #   - USER=dbuser
+    #   - PASSWORD=helloDEV222_
+    #   - DB=mydb
+    #   - DIALECT=mysql
+    #   - POOL_MAX=5
+    #   - POOL_MIN=0
+    #   - POOL_ACCUIRE=30000
+    #   - POOL_IDLE=10000
+    networks:
+      product-network:
+        ipv4_address: 172.24.0.11
+
+  frontend:
+    depends_on:
+      - backend
+    build:
+      context: ../Products-Frontend-Remake/
+      dockerfile: Dockerfile
+      container_name: "frontend"
+      image: "frontend"
+    volumes:
+      - ./src:/app/src
+    ports:
+      - "8080:80"
+    networks:
+      product-network:
+        ipv4_address: 172.24.0.10
+
+networks:
+  product-network:
+    # external: true
+    name: products-network
+    ipam:
+      config:
+        - subnet: 172.24.0.0/16
